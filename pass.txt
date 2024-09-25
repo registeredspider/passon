@@ -1,0 +1,39 @@
+# Define LDAP connection details
+$ldapUrl = "LDAP://your-ldap-server.com"
+$ldapUsername = "your-ldap-username"
+$ldapPassword = ConvertTo-SecureString "your-ldap-password" -AsPlainText -Force
+
+# Create credentials object
+$ldapCredentials = New-Object System.Management.Automation.PSCredential($ldapUsername, $ldapPassword)
+
+# Define LDAP search criteria (adjust based on your requirements)
+$searchFilter = "(samAccountName=username)"  # Replace 'username' with the actual username to search for
+
+# Create Directory Entry object for LDAP connection
+$directoryEntry = New-Object System.DirectoryServices.DirectoryEntry($ldapUrl, $ldapUsername, $ldapPassword)
+
+# Create DirectorySearcher object to search for user details
+$searcher = New-Object System.DirectoryServices.DirectorySearcher($directoryEntry)
+$searcher.Filter = $searchFilter
+$searcher.SearchScope = "Subtree" # You can also set "Base", "OneLevel", or "Subtree"
+$searcher.PropertiesToLoad.AddRange(@("displayName", "mail", "samAccountName", "userPrincipalName", "distinguishedName"))  # Define attributes you want to retrieve
+
+# Execute the search
+$searchResult = $searcher.FindOne()
+
+# Check if user found
+if ($searchResult -ne $null) {
+    $userDetails = @{}
+    foreach ($property in $searchResult.Properties.PropertyNames) {
+        $userDetails[$property] = $searchResult.Properties[$property]
+    }
+    
+    # Output user details
+    $userDetails
+} else {
+    Write-Host "User not found"
+}
+
+# Dispose the directory entry and searcher objects to free resources
+$directoryEntry.Dispose()
+$searcher.Dispose()
